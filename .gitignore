@@ -1,14 +1,12 @@
 venv/
 __pycache__/
 *.pyc
-
 .env
 
 instance/
-*.db
+database/*.db
 
 secret.key
 
 storage/*
 !storage/encrypted/
-!storage/encrypted/.gitkeep
