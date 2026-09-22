@@ -47,7 +47,10 @@ from models import (
 
 app = Flask(__name__)
 
-app.config["SECRET_KEY"] = "secure-wallet-development-key"
+app.config["SECRET_KEY"] = os.environ.get(
+    "SECRET_KEY",
+    "secure-wallet-development-key"
+)
 
 app.config["SQLALCHEMY_DATABASE_URI"] = (
     "sqlite:///secure_wallet.db"
@@ -92,6 +95,7 @@ def log_activity(action, user_id):
     )
 
     db.session.add(activity)
+
     db.session.commit()
 
 
@@ -101,19 +105,29 @@ def log_activity(action, user_id):
 
 KEY_FILE = "secret.key"
 
+# Render will use the FERNET_KEY environment variable.
+# Local development will continue using secret.key.
 
-if not os.path.exists(KEY_FILE):
-
-    key = Fernet.generate_key()
-
-    with open(KEY_FILE, "wb") as key_file:
-
-        key_file.write(key)
+encryption_key = os.environ.get("FERNET_KEY")
 
 
-with open(KEY_FILE, "rb") as key_file:
+if encryption_key:
 
-    encryption_key = key_file.read()
+    encryption_key = encryption_key.encode()
+
+else:
+
+    if not os.path.exists(KEY_FILE):
+
+        key = Fernet.generate_key()
+
+        with open(KEY_FILE, "wb") as key_file:
+
+            key_file.write(key)
+
+    with open(KEY_FILE, "rb") as key_file:
+
+        encryption_key = key_file.read()
 
 
 fernet = Fernet(encryption_key)
@@ -195,13 +209,9 @@ def register():
 
 
         new_user = User(
-
             username=username,
-
             email=email,
-
             password_hash=password_hash
-
         )
 
 
@@ -253,6 +263,7 @@ def login():
                 "User logged in",
                 user.id
             )
+
 
             return redirect(
                 url_for("dashboard")
@@ -367,12 +378,10 @@ def upload():
 
 
         log_activity(
-
             "Uploaded file: "
             + original_filename,
 
             current_user.id
-
         )
 
 
@@ -543,10 +552,15 @@ def activity_logs():
     # UTC + 5 hours 30 minutes
 
     ist = timezone(
+
         timedelta(
+
             hours=5,
+
             minutes=30
+
         )
+
     )
 
 
@@ -594,7 +608,9 @@ def logout():
 
 
     return redirect(
+
         url_for("login")
+
     )
 
 
