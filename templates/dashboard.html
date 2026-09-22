@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>Dashboard - Secure Wallet</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+
+<body>
+
+    <div class="dashboard-container">
+
+        <div class="top-bar">
+            <div>
+                <h1>🔐 Secure Wallet</h1>
+                <p>Secure File Protection System</p>
+            </div>
+
+            <a href="/logout" class="logout-btn">
+                Logout
+            </a>
+        </div>
+
+
+        <div class="welcome-section">
+
+            <h2>Welcome, {{ username }}! 👋</h2>
+
+            <p>
+                Manage your files securely with encryption
+                and integrity verification.
+            </p>
+
+        </div>
+
+
+        <div class="section">
+
+            <h3>📁 File Management</h3>
+
+            <div class="card-grid">
+
+                <a href="/upload" class="dashboard-card">
+
+                    <div class="card-icon">
+                        📤
+                    </div>
+
+                    <h4>Upload File</h4>
+
+                    <p>
+                        Encrypt and securely store your file.
+                    </p>
+
+                </a>
+
+
+                <a href="/my-files" class="dashboard-card">
+
+                    <div class="card-icon">
+                        📂
+                    </div>
+
+                    <h4>My Files</h4>
+
+                    <p>
+                        View and download your secure files.
+                    </p>
+
+                </a>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <h3>🔐 Security</h3>
+
+            <div class="security-grid">
+
+                <div class="security-card">
+
+                    <div class="card-icon">
+                        🔒
+                    </div>
+
+                    <h4>File Encryption</h4>
+
+                    <p>
+                        Files are encrypted using Fernet
+                        before being stored.
+                    </p>
+
+                </div>
+
+
+                <div class="security-card">
+
+                    <div class="card-icon">
+                        🛡️
+                    </div>
+
+                    <h4>SHA-256 Verification</h4>
+
+                    <p>
+                        File integrity is verified using
+                        SHA-256 hashing.
+                    </p>
+
+                </div>
+
+            </div>
+
+        </div>
+
+
+        <div class="section">
+
+            <h3>📋 Activity</h3>
+
+            <a href="/activity-logs" class="activity-card">
+
+                <div class="card-icon">
+                    📋
+                </div>
+
+                <div>
+
+                    <h4>Activity Logs</h4>
+
+                    <p>
+                        View your login, upload and
+                        download activity.
+                    </p>
+
+                </div>
+
+            </a>
+
+        </div>
+
+
+        <div class="footer">
+
+            <p>
+                🔐 Secure Wallet |
+                Privacy-focused file protection
+            </p>
+
+        </div>
+
+    </div>
+
+</body>
+
+</html>

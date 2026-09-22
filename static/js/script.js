@@ -1,0 +1,1 @@
+console.log("Secure Wallet JavaScript loaded.");

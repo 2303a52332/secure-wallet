@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta
+        name="viewport"
+        content="width=device-width, initial-scale=1.0"
+    >
+
+    <title>Activity Logs - Secure Wallet</title>
+
+</head>
+
+
+<body>
+
+    <h1>🔐 Secure Wallet</h1>
+
+    <h2>📋 Activity Logs</h2>
+
+
+    {% if logs %}
+
+        <table border="1" cellpadding="10">
+
+            <tr>
+
+                <th>Action</th>
+
+                <th>Date & Time</th>
+
+            </tr>
+
+
+            {% for log in logs %}
+
+            <tr>
+
+                <td>
+                    {{ log.action }}
+                </td>
+
+                <td>
+                    {{ log.timestamp }}
+                </td>
+
+            </tr>
+
+            {% endfor %}
+
+        </table>
+
+
+    {% else %}
+
+        <p>
+            No activity recorded yet.
+        </p>
+
+    {% endif %}
+
+
+    <br>
+
+
+    <a href="/dashboard">
+
+        ← Back to Dashboard
+
+    </a>
+
+</body>
+
+</html>
