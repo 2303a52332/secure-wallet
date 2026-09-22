@@ -10,7 +10,8 @@ from flask import (
     request,
     redirect,
     url_for,
-    send_file
+    send_file,
+    flash
 )
 
 from werkzeug.security import (
@@ -95,7 +96,6 @@ def log_activity(action, user_id):
     )
 
     db.session.add(activity)
-
     db.session.commit()
 
 
@@ -105,29 +105,19 @@ def log_activity(action, user_id):
 
 KEY_FILE = "secret.key"
 
-# Render will use the FERNET_KEY environment variable.
-# Local development will continue using secret.key.
 
-encryption_key = os.environ.get("FERNET_KEY")
+if not os.path.exists(KEY_FILE):
+
+    key = Fernet.generate_key()
+
+    with open(KEY_FILE, "wb") as key_file:
+
+        key_file.write(key)
 
 
-if encryption_key:
+with open(KEY_FILE, "rb") as key_file:
 
-    encryption_key = encryption_key.encode()
-
-else:
-
-    if not os.path.exists(KEY_FILE):
-
-        key = Fernet.generate_key()
-
-        with open(KEY_FILE, "wb") as key_file:
-
-            key_file.write(key)
-
-    with open(KEY_FILE, "rb") as key_file:
-
-        encryption_key = key_file.read()
+    encryption_key = key_file.read()
 
 
 fernet = Fernet(encryption_key)
@@ -167,46 +157,102 @@ def register():
 
     if request.method == "POST":
 
-        username = request.form["username"]
+        # Get form data safely
+        username = request.form.get(
+            "username",
+            ""
+        ).strip()
 
-        email = request.form["email"]
+        email = request.form.get(
+            "email",
+            ""
+        ).strip().lower()
 
-        password = request.form["password"]
+        password = request.form.get(
+            "password",
+            ""
+        )
 
-        confirm_password = request.form[
-            "confirm_password"
-        ]
+        confirm_password = request.form.get(
+            "confirm_password",
+            ""
+        )
 
+        # --------------------------------------
+        # Empty field validation
+        # --------------------------------------
+
+        if not username or not email or not password:
+
+            flash(
+                "Please fill in all fields."
+            )
+
+            return render_template(
+                "register.html"
+            )
+
+        # --------------------------------------
+        # Password confirmation
+        # --------------------------------------
 
         if password != confirm_password:
 
-            return "Passwords do not match!"
+            flash(
+                "Passwords do not match."
+            )
 
+            return render_template(
+                "register.html"
+            )
+
+        # --------------------------------------
+        # Username validation
+        # --------------------------------------
 
         existing_username = User.query.filter_by(
             username=username
         ).first()
 
-
         if existing_username:
 
-            return "Username already exists!"
+            flash(
+                "Username already exists."
+            )
 
+            return render_template(
+                "register.html"
+            )
+
+        # --------------------------------------
+        # Email validation
+        # --------------------------------------
 
         existing_email = User.query.filter_by(
             email=email
         ).first()
 
-
         if existing_email:
 
-            return "Email already registered!"
+            flash(
+                "Email already registered."
+            )
 
+            return render_template(
+                "register.html"
+            )
+
+        # --------------------------------------
+        # Hash password
+        # --------------------------------------
 
         password_hash = generate_password_hash(
             password
         )
 
+        # --------------------------------------
+        # Create user
+        # --------------------------------------
 
         new_user = User(
             username=username,
@@ -214,16 +260,22 @@ def register():
             password_hash=password_hash
         )
 
-
         db.session.add(new_user)
 
         db.session.commit()
 
+        # --------------------------------------
+        # Success message
+        # --------------------------------------
+
+        flash(
+            "Account created successfully. "
+            "Please log in."
+        )
 
         return redirect(
             url_for("login")
         )
-
 
     return render_template(
         "register.html"
@@ -242,36 +294,75 @@ def login():
 
     if request.method == "POST":
 
-        email = request.form["email"]
+        # --------------------------------------
+        # Get login information
+        # --------------------------------------
 
-        password = request.form["password"]
+        identifier = request.form.get(
+            "email",
+            ""
+        ).strip()
 
+        password = request.form.get(
+            "password",
+            ""
+        )
+
+        # --------------------------------------
+        # Normalize email
+        # --------------------------------------
+
+        email_identifier = identifier.lower()
+
+        # --------------------------------------
+        # First try email
+        # --------------------------------------
 
         user = User.query.filter_by(
-            email=email
+            email=email_identifier
         ).first()
 
+        # --------------------------------------
+        # If email doesn't exist,
+        # try username
+        # --------------------------------------
+
+        if not user:
+
+            user = User.query.filter_by(
+                username=identifier
+            ).first()
+
+        # --------------------------------------
+        # Verify password
+        # --------------------------------------
 
         if user and check_password_hash(
             user.password_hash,
             password
         ):
 
+            # Create login session
             login_user(user)
 
+            # Record activity
             log_activity(
                 "User logged in",
                 user.id
             )
 
-
+            # Redirect to dashboard
             return redirect(
                 url_for("dashboard")
             )
 
+        # --------------------------------------
+        # Login failed
+        # --------------------------------------
 
-        return "Invalid email or password!"
-
+        flash(
+            "Invalid email/username or password."
+        )
 
     return render_template(
         "login.html"
@@ -305,35 +396,55 @@ def upload():
 
     if request.method == "POST":
 
-        file = request.files.get("file")
+        # --------------------------------------
+        # Get uploaded file
+        # --------------------------------------
 
+        file = request.files.get("file")
 
         if not file or file.filename == "":
 
-            return "Please select a file."
+            flash(
+                "Please select a file."
+            )
 
+            return render_template(
+                "upload.html"
+            )
+
+        # --------------------------------------
+        # Secure filename
+        # --------------------------------------
 
         original_filename = secure_filename(
             file.filename
         )
 
+        # --------------------------------------
+        # Read file
+        # --------------------------------------
 
         file_data = file.read()
 
-
+        # --------------------------------------
         # SHA-256 hash
+        # --------------------------------------
 
         file_hash = hashlib.sha256(
             file_data
         ).hexdigest()
 
-
-        # Encrypt
+        # --------------------------------------
+        # Encrypt file
+        # --------------------------------------
 
         encrypted_data = fernet.encrypt(
             file_data
         )
 
+        # --------------------------------------
+        # Create encrypted filename
+        # --------------------------------------
 
         encrypted_filename = (
             str(current_user.id)
@@ -342,12 +453,14 @@ def upload():
             + ".encrypted"
         )
 
-
         encrypted_path = os.path.join(
             STORAGE_FOLDER,
             encrypted_filename
         )
 
+        # --------------------------------------
+        # Save encrypted file
+        # --------------------------------------
 
         with open(
             encrypted_path,
@@ -358,6 +471,9 @@ def upload():
                 encrypted_data
             )
 
+        # --------------------------------------
+        # Save file information to database
+        # --------------------------------------
 
         secure_file = SecureFile(
 
@@ -371,24 +487,29 @@ def upload():
 
         )
 
-
-        db.session.add(secure_file)
+        db.session.add(
+            secure_file
+        )
 
         db.session.commit()
 
+        # --------------------------------------
+        # Activity log
+        # --------------------------------------
 
         log_activity(
             "Uploaded file: "
             + original_filename,
-
             current_user.id
         )
 
-
-        return (
+        flash(
             "File encrypted and uploaded successfully!"
         )
 
+        return redirect(
+            url_for("my_files")
+        )
 
     return render_template(
         "upload.html"
@@ -413,13 +534,9 @@ def my_files():
 
     ).all()
 
-
     return render_template(
-
         "my_files.html",
-
         files=files
-
     )
 
 
@@ -433,6 +550,10 @@ def my_files():
 @login_required
 def download_file(file_id):
 
+    # --------------------------------------
+    # Find file belonging to current user
+    # --------------------------------------
+
     secure_file = SecureFile.query.filter_by(
 
         id=file_id,
@@ -441,11 +562,19 @@ def download_file(file_id):
 
     ).first()
 
-
     if not secure_file:
 
-        return "File not found or access denied."
+        flash(
+            "File not found or access denied."
+        )
 
+        return redirect(
+            url_for("my_files")
+        )
+
+    # --------------------------------------
+    # Encrypted file path
+    # --------------------------------------
 
     encrypted_path = os.path.join(
 
@@ -455,13 +584,21 @@ def download_file(file_id):
 
     )
 
-
     if not os.path.exists(
         encrypted_path
     ):
 
-        return "Encrypted file not found."
+        flash(
+            "Encrypted file not found."
+        )
 
+        return redirect(
+            url_for("my_files")
+        )
+
+    # --------------------------------------
+    # Decrypt
+    # --------------------------------------
 
     try:
 
@@ -474,45 +611,53 @@ def download_file(file_id):
                 encrypted_file.read()
             )
 
-
         decrypted_data = fernet.decrypt(
             encrypted_data
         )
 
-
     except InvalidToken:
 
-        return (
-            "Security error: "
-            "File may have been modified "
-            "or corrupted."
+        flash(
+            "Security error: File may have "
+            "been modified or corrupted."
         )
 
+        return redirect(
+            url_for("my_files")
+        )
 
-    # SHA-256 integrity check
+    # --------------------------------------
+    # SHA-256 integrity verification
+    # --------------------------------------
 
     current_hash = hashlib.sha256(
         decrypted_data
     ).hexdigest()
 
-
     if current_hash != secure_file.file_hash:
 
-        return (
+        flash(
             "Integrity check failed. "
             "File may have been tampered with."
         )
 
+        return redirect(
+            url_for("my_files")
+        )
+
+    # --------------------------------------
+    # Activity log
+    # --------------------------------------
 
     log_activity(
-
         "Downloaded file: "
         + secure_file.original_filename,
-
         current_user.id
-
     )
 
+    # --------------------------------------
+    # Send decrypted file
+    # --------------------------------------
 
     return send_file(
 
@@ -547,22 +692,17 @@ def activity_logs():
 
     ).all()
 
-
+    # --------------------------------------
     # India Standard Time
-    # UTC + 5 hours 30 minutes
+    # UTC + 5:30
+    # --------------------------------------
 
     ist = timezone(
-
         timedelta(
-
             hours=5,
-
             minutes=30
-
         )
-
     )
-
 
     for log in logs:
 
@@ -572,15 +712,13 @@ def activity_logs():
 
                 tzinfo=timezone.utc
 
-            ).astimezone(ist)
-
+            ).astimezone(
+                ist
+            )
 
     return render_template(
-
         "activity_logs.html",
-
         logs=logs
-
     )
 
 
@@ -594,23 +732,23 @@ def logout():
 
     user_id = current_user.id
 
+    # --------------------------------------
+    # Record logout activity
+    # --------------------------------------
 
     log_activity(
-
         "User logged out",
-
         user_id
-
     )
 
+    # --------------------------------------
+    # Logout
+    # --------------------------------------
 
     logout_user()
 
-
     return redirect(
-
         url_for("login")
-
     )
 
 
