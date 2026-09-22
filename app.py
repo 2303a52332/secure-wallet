@@ -85,7 +85,7 @@ def load_user(user_id):
 
 
 # ==========================================
-# ACTIVITY LOG FUNCTION
+# ACTIVITY LOG
 # ==========================================
 
 def log_activity(action, user_id):
@@ -103,21 +103,25 @@ def log_activity(action, user_id):
 # ENCRYPTION KEY
 # ==========================================
 
-KEY_FILE = "secret.key"
+FERNET_KEY = os.environ.get("FERNET_KEY")
 
+if FERNET_KEY:
 
-if not os.path.exists(KEY_FILE):
+    encryption_key = FERNET_KEY.encode()
 
-    key = Fernet.generate_key()
+else:
 
-    with open(KEY_FILE, "wb") as key_file:
+    KEY_FILE = "secret.key"
 
-        key_file.write(key)
+    if not os.path.exists(KEY_FILE):
 
+        key = Fernet.generate_key()
 
-with open(KEY_FILE, "rb") as key_file:
+        with open(KEY_FILE, "wb") as key_file:
+            key_file.write(key)
 
-    encryption_key = key_file.read()
+    with open(KEY_FILE, "rb") as key_file:
+        encryption_key = key_file.read()
 
 
 fernet = Fernet(encryption_key)
@@ -157,7 +161,6 @@ def register():
 
     if request.method == "POST":
 
-        # Get form data safely
         username = request.form.get(
             "username",
             ""
@@ -178,10 +181,6 @@ def register():
             ""
         )
 
-        # --------------------------------------
-        # Empty field validation
-        # --------------------------------------
-
         if not username or not email or not password:
 
             flash(
@@ -192,10 +191,6 @@ def register():
                 "register.html"
             )
 
-        # --------------------------------------
-        # Password confirmation
-        # --------------------------------------
-
         if password != confirm_password:
 
             flash(
@@ -205,10 +200,6 @@ def register():
             return render_template(
                 "register.html"
             )
-
-        # --------------------------------------
-        # Username validation
-        # --------------------------------------
 
         existing_username = User.query.filter_by(
             username=username
@@ -224,10 +215,6 @@ def register():
                 "register.html"
             )
 
-        # --------------------------------------
-        # Email validation
-        # --------------------------------------
-
         existing_email = User.query.filter_by(
             email=email
         ).first()
@@ -242,17 +229,9 @@ def register():
                 "register.html"
             )
 
-        # --------------------------------------
-        # Hash password
-        # --------------------------------------
-
         password_hash = generate_password_hash(
             password
         )
-
-        # --------------------------------------
-        # Create user
-        # --------------------------------------
 
         new_user = User(
             username=username,
@@ -263,10 +242,6 @@ def register():
         db.session.add(new_user)
 
         db.session.commit()
-
-        # --------------------------------------
-        # Success message
-        # --------------------------------------
 
         flash(
             "Account created successfully. "
@@ -294,10 +269,6 @@ def login():
 
     if request.method == "POST":
 
-        # --------------------------------------
-        # Get login information
-        # --------------------------------------
-
         identifier = request.form.get(
             "email",
             ""
@@ -308,24 +279,11 @@ def login():
             ""
         )
 
-        # --------------------------------------
-        # Normalize email
-        # --------------------------------------
-
         email_identifier = identifier.lower()
-
-        # --------------------------------------
-        # First try email
-        # --------------------------------------
 
         user = User.query.filter_by(
             email=email_identifier
         ).first()
-
-        # --------------------------------------
-        # If email doesn't exist,
-        # try username
-        # --------------------------------------
 
         if not user:
 
@@ -333,32 +291,21 @@ def login():
                 username=identifier
             ).first()
 
-        # --------------------------------------
-        # Verify password
-        # --------------------------------------
-
         if user and check_password_hash(
             user.password_hash,
             password
         ):
 
-            # Create login session
             login_user(user)
 
-            # Record activity
             log_activity(
                 "User logged in",
                 user.id
             )
 
-            # Redirect to dashboard
             return redirect(
                 url_for("dashboard")
             )
-
-        # --------------------------------------
-        # Login failed
-        # --------------------------------------
 
         flash(
             "Invalid email/username or password."
@@ -384,7 +331,7 @@ def dashboard():
 
 
 # ==========================================
-# UPLOAD FILE
+# UPLOAD
 # ==========================================
 
 @app.route(
@@ -395,10 +342,6 @@ def dashboard():
 def upload():
 
     if request.method == "POST":
-
-        # --------------------------------------
-        # Get uploaded file
-        # --------------------------------------
 
         file = request.files.get("file")
 
@@ -412,39 +355,19 @@ def upload():
                 "upload.html"
             )
 
-        # --------------------------------------
-        # Secure filename
-        # --------------------------------------
-
         original_filename = secure_filename(
             file.filename
         )
 
-        # --------------------------------------
-        # Read file
-        # --------------------------------------
-
         file_data = file.read()
-
-        # --------------------------------------
-        # SHA-256 hash
-        # --------------------------------------
 
         file_hash = hashlib.sha256(
             file_data
         ).hexdigest()
 
-        # --------------------------------------
-        # Encrypt file
-        # --------------------------------------
-
         encrypted_data = fernet.encrypt(
             file_data
         )
-
-        # --------------------------------------
-        # Create encrypted filename
-        # --------------------------------------
 
         encrypted_filename = (
             str(current_user.id)
@@ -458,10 +381,6 @@ def upload():
             encrypted_filename
         )
 
-        # --------------------------------------
-        # Save encrypted file
-        # --------------------------------------
-
         with open(
             encrypted_path,
             "wb"
@@ -471,20 +390,11 @@ def upload():
                 encrypted_data
             )
 
-        # --------------------------------------
-        # Save file information to database
-        # --------------------------------------
-
         secure_file = SecureFile(
-
             original_filename=original_filename,
-
             encrypted_filename=encrypted_filename,
-
             file_hash=file_hash,
-
             user_id=current_user.id
-
         )
 
         db.session.add(
@@ -492,10 +402,6 @@ def upload():
         )
 
         db.session.commit()
-
-        # --------------------------------------
-        # Activity log
-        # --------------------------------------
 
         log_activity(
             "Uploaded file: "
@@ -525,13 +431,9 @@ def upload():
 def my_files():
 
     files = SecureFile.query.filter_by(
-
         user_id=current_user.id
-
     ).order_by(
-
         SecureFile.uploaded_at.desc()
-
     ).all()
 
     return render_template(
@@ -550,16 +452,9 @@ def my_files():
 @login_required
 def download_file(file_id):
 
-    # --------------------------------------
-    # Find file belonging to current user
-    # --------------------------------------
-
     secure_file = SecureFile.query.filter_by(
-
         id=file_id,
-
         user_id=current_user.id
-
     ).first()
 
     if not secure_file:
@@ -572,16 +467,9 @@ def download_file(file_id):
             url_for("my_files")
         )
 
-    # --------------------------------------
-    # Encrypted file path
-    # --------------------------------------
-
     encrypted_path = os.path.join(
-
         STORAGE_FOLDER,
-
         secure_file.encrypted_filename
-
     )
 
     if not os.path.exists(
@@ -596,10 +484,6 @@ def download_file(file_id):
             url_for("my_files")
         )
 
-    # --------------------------------------
-    # Decrypt
-    # --------------------------------------
-
     try:
 
         with open(
@@ -607,9 +491,7 @@ def download_file(file_id):
             "rb"
         ) as encrypted_file:
 
-            encrypted_data = (
-                encrypted_file.read()
-            )
+            encrypted_data = encrypted_file.read()
 
         decrypted_data = fernet.decrypt(
             encrypted_data
@@ -626,10 +508,6 @@ def download_file(file_id):
             url_for("my_files")
         )
 
-    # --------------------------------------
-    # SHA-256 integrity verification
-    # --------------------------------------
-
     current_hash = hashlib.sha256(
         decrypted_data
     ).hexdigest()
@@ -645,32 +523,18 @@ def download_file(file_id):
             url_for("my_files")
         )
 
-    # --------------------------------------
-    # Activity log
-    # --------------------------------------
-
     log_activity(
         "Downloaded file: "
         + secure_file.original_filename,
         current_user.id
     )
 
-    # --------------------------------------
-    # Send decrypted file
-    # --------------------------------------
-
     return send_file(
-
         io.BytesIO(
             decrypted_data
         ),
-
         as_attachment=True,
-
-        download_name=(
-            secure_file.original_filename
-        )
-
+        download_name=secure_file.original_filename
     )
 
 
@@ -683,19 +547,10 @@ def download_file(file_id):
 def activity_logs():
 
     logs = ActivityLog.query.filter_by(
-
         user_id=current_user.id
-
     ).order_by(
-
         ActivityLog.timestamp.desc()
-
     ).all()
-
-    # --------------------------------------
-    # India Standard Time
-    # UTC + 5:30
-    # --------------------------------------
 
     ist = timezone(
         timedelta(
@@ -709,12 +564,8 @@ def activity_logs():
         if log.timestamp:
 
             log.timestamp = log.timestamp.replace(
-
                 tzinfo=timezone.utc
-
-            ).astimezone(
-                ist
-            )
+            ).astimezone(ist)
 
     return render_template(
         "activity_logs.html",
@@ -732,18 +583,10 @@ def logout():
 
     user_id = current_user.id
 
-    # --------------------------------------
-    # Record logout activity
-    # --------------------------------------
-
     log_activity(
         "User logged out",
         user_id
     )
-
-    # --------------------------------------
-    # Logout
-    # --------------------------------------
 
     logout_user()
 
@@ -753,7 +596,7 @@ def logout():
 
 
 # ==========================================
-# CREATE DATABASE TABLES
+# DATABASE INITIALIZATION
 # ==========================================
 
 with app.app_context():
