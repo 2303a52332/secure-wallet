@@ -1,45 +1,166 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
 
-    <title>Upload File - Secure Wallet</title>
+    <title>Upload File | Secure Wallet</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .upload-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 30px 20px;
+        }
+
+        .upload-card {
+            width: 100%;
+            max-width: 600px;
+            background: white;
+            padding: 45px;
+            border-radius: 22px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.10);
+        }
+
+        .upload-icon {
+            text-align: center;
+            font-size: 55px;
+            margin-bottom: 10px;
+        }
+
+        .upload-card h1 {
+            text-align: center;
+            margin: 0;
+            color: #173b67;
+            font-size: 32px;
+        }
+
+        .upload-subtitle {
+            text-align: center;
+            color: #64748b;
+            margin: 10px 0 35px;
+        }
+
+        .file-box {
+            background: #f5f9ff;
+            border: 2px dashed #bfdbfe;
+            border-radius: 14px;
+            padding: 30px;
+            text-align: center;
+            margin-bottom: 25px;
+        }
+
+        .file-box label {
+            display: block;
+            color: #173b67;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+
+        .file-box input[type="file"] {
+            width: 100%;
+            font-size: 14px;
+        }
+
+        .encrypt-btn {
+            width: 100%;
+            border: none;
+            padding: 15px;
+            border-radius: 10px;
+            background: #2563eb;
+            color: white;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+        }
+
+        .encrypt-btn:hover {
+            background: #1d4ed8;
+        }
+
+        .security-info {
+            margin-top: 25px;
+            padding: 18px;
+            background: #eff6ff;
+            border-radius: 10px;
+            color: #475569;
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .security-info strong {
+            color: #173b67;
+        }
+
+        .back-link {
+            display: block;
+            text-align: center;
+            margin-top: 25px;
+            color: #2563eb;
+            text-decoration: none;
+            font-size: 14px;
+        }
+
+        .back-link:hover {
+            text-decoration: underline;
+        }
+    </style>
 </head>
 
 <body>
 
-    <h1>🔐 Secure Wallet</h1>
+    <main class="upload-page">
 
-    <h2>📤 Upload Secure File</h2>
+        <section class="upload-card">
 
-    <form method="POST" enctype="multipart/form-data">
+            <div class="upload-icon">📤</div>
 
-        <label>Select a file:</label>
+            <h1>Upload Secure File</h1>
 
-        <br><br>
+            <p class="upload-subtitle">
+                Encrypt your file before securely storing it.
+            </p>
 
-        <input
-            type="file"
-            name="file"
-            required
-        >
+            <form method="POST" enctype="multipart/form-data">
 
-        <br><br>
+                <div class="file-box">
 
-        <button type="submit">
-            🔒 Encrypt & Upload
-        </button>
+                    <label for="file">
+                        Select a file to protect
+                    </label>
 
-    </form>
+                    <input
+                        type="file"
+                        id="file"
+                        name="file"
+                        required
+                    >
 
-    <br>
+                </div>
 
-    <a href="/dashboard">
-        ← Back to Dashboard
-    </a>
+                <button type="submit" class="encrypt-btn">
+                    🔐 Encrypt & Upload
+                </button>
+
+            </form>
+
+            <div class="security-info">
+                <strong>🔒 Security:</strong>
+                Your file is encrypted using Fernet before storage.
+                A SHA-256 hash is also generated to verify file integrity.
+            </div>
+
+            <a href="/dashboard" class="back-link">
+                ← Back to Dashboard
+            </a>
+
+        </section>
+
+    </main>
 
 </body>
-
 </html>
