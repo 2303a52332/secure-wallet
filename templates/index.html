@@ -1,16 +1,232 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Secure Wallet</title>
+
+    <title>Secure Wallet | Secure File Protection</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+
+    <style>
+        .landing-page {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 40px 20px;
+        }
+
+        .landing-card {
+            width: 100%;
+            max-width: 950px;
+            background: white;
+            border-radius: 24px;
+            padding: 60px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.10);
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 58px;
+            margin-bottom: 15px;
+        }
+
+        .landing-card h1 {
+            margin: 0;
+            font-size: 42px;
+            color: #173b67;
+        }
+
+        .landing-card .subtitle {
+            font-size: 20px;
+            color: #64748b;
+            margin: 15px 0 35px;
+        }
+
+        .description {
+            max-width: 700px;
+            margin: 0 auto 40px;
+            color: #475569;
+            line-height: 1.7;
+            font-size: 16px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 18px;
+            margin-bottom: 40px;
+        }
+
+        .feature {
+            padding: 22px 15px;
+            background: #f5f9ff;
+            border-radius: 15px;
+        }
+
+        .feature-icon {
+            font-size: 30px;
+            margin-bottom: 10px;
+        }
+
+        .feature h3 {
+            margin: 5px 0;
+            color: #173b67;
+            font-size: 16px;
+        }
+
+        .feature p {
+            margin: 5px 0 0;
+            color: #64748b;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 15px;
+        }
+
+        .btn {
+            display: inline-block;
+            padding: 14px 32px;
+            border-radius: 10px;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 16px;
+            transition: 0.2s;
+        }
+
+        .btn-primary {
+            background: #2563eb;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #1d4ed8;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #e8f0ff;
+            color: #2563eb;
+        }
+
+        .btn-secondary:hover {
+            background: #dbeafe;
+            transform: translateY(-2px);
+        }
+
+        .security-note {
+            margin-top: 30px;
+            color: #64748b;
+            font-size: 13px;
+        }
+
+        @media (max-width: 750px) {
+            .landing-card {
+                padding: 40px 25px;
+            }
+
+            .landing-card h1 {
+                font-size: 32px;
+            }
+
+            .features {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+
+        @media (max-width: 450px) {
+            .features {
+                grid-template-columns: 1fr;
+            }
+
+            .buttons {
+                flex-direction: column;
+            }
+        }
+    </style>
 </head>
+
 <body>
-    <main class="container">
-        <h1>🔐 Secure Wallet</h1>
-        <p>Secure File Protection System</p>
-        <p class="status">Project setup successful.</p>
+
+    <main class="landing-page">
+
+        <section class="landing-card">
+
+            <div class="logo">🔐</div>
+
+            <h1>Secure Wallet</h1>
+
+            <p class="subtitle">
+                Secure File Protection System
+            </p>
+
+            <p class="description">
+                Protect your files with encrypted storage, secure authentication,
+                SHA-256 integrity verification, and activity monitoring.
+                Secure Wallet provides a privacy-focused way to manage your
+                important files.
+            </p>
+
+            <div class="features">
+
+                <div class="feature">
+                    <div class="feature-icon">🔒</div>
+                    <h3>File Encryption</h3>
+                    <p>
+                        Files are encrypted before being stored securely.
+                    </p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">🛡️</div>
+                    <h3>SHA-256 Security</h3>
+                    <p>
+                        Verify file integrity and detect unauthorized changes.
+                    </p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">👤</div>
+                    <h3>Secure Access</h3>
+                    <p>
+                        Authentication keeps your files accessible only to you.
+                    </p>
+                </div>
+
+                <div class="feature">
+                    <div class="feature-icon">📋</div>
+                    <h3>Activity Logs</h3>
+                    <p>
+                        Track important account and file activities.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="buttons">
+
+                <a href="{{ url_for('login') }}" class="btn btn-primary">
+                    Login
+                </a>
+
+                <a href="{{ url_for('register') }}" class="btn btn-secondary">
+                    Create Account
+                </a>
+
+            </div>
+
+            <p class="security-note">
+                🔐 Privacy-focused • Encrypted storage • Integrity verification
+            </p>
+
+        </section>
+
     </main>
+
 </body>
 </html>
