@@ -48,20 +48,50 @@ from models import (
 
 app = Flask(__name__)
 
+
+# ==========================================
+# SECRET KEY
+# ==========================================
+
 app.config["SECRET_KEY"] = os.environ.get(
     "SECRET_KEY",
     "secure-wallet-development-key"
 )
 
-app.config["SQLALCHEMY_DATABASE_URI"] = (
-    "sqlite:///secure_wallet.db"
-)
+
+# ==========================================
+# DATABASE
+# ==========================================
+
+DATABASE_URL = os.environ.get("DATABASE_URL")
+
+if DATABASE_URL:
+
+    # Render may provide postgres://
+    # SQLAlchemy expects postgresql://
+    if DATABASE_URL.startswith("postgres://"):
+
+        DATABASE_URL = DATABASE_URL.replace(
+            "postgres://",
+            "postgresql://",
+            1
+        )
+
+    app.config["SQLALCHEMY_DATABASE_URI"] = DATABASE_URL
+
+else:
+
+    # Local development uses SQLite
+    app.config["SQLALCHEMY_DATABASE_URI"] = (
+        "sqlite:///secure_wallet.db"
+    )
+
 
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 
 
 # ==========================================
-# DATABASE
+# DATABASE INITIALIZATION
 # ==========================================
 
 db.init_app(app)
@@ -85,7 +115,7 @@ def load_user(user_id):
 
 
 # ==========================================
-# ACTIVITY LOG
+# ACTIVITY LOG FUNCTION
 # ==========================================
 
 def log_activity(action, user_id):
@@ -96,14 +126,18 @@ def log_activity(action, user_id):
     )
 
     db.session.add(activity)
+
     db.session.commit()
 
 
 # ==========================================
-# ENCRYPTION KEY
+# FERNET ENCRYPTION KEY
 # ==========================================
 
-FERNET_KEY = os.environ.get("FERNET_KEY")
+FERNET_KEY = os.environ.get(
+    "FERNET_KEY"
+)
+
 
 if FERNET_KEY:
 
@@ -117,14 +151,24 @@ else:
 
         key = Fernet.generate_key()
 
-        with open(KEY_FILE, "wb") as key_file:
+        with open(
+            KEY_FILE,
+            "wb"
+        ) as key_file:
+
             key_file.write(key)
 
-    with open(KEY_FILE, "rb") as key_file:
+    with open(
+        KEY_FILE,
+        "rb"
+    ) as key_file:
+
         encryption_key = key_file.read()
 
 
-fernet = Fernet(encryption_key)
+fernet = Fernet(
+    encryption_key
+)
 
 
 # ==========================================
@@ -146,7 +190,9 @@ os.makedirs(
 @app.route("/")
 def home():
 
-    return render_template("index.html")
+    return render_template(
+        "index.html"
+    )
 
 
 # ==========================================
@@ -181,7 +227,15 @@ def register():
             ""
         )
 
-        if not username or not email or not password:
+        # ------------------------------
+        # Empty fields
+        # ------------------------------
+
+        if (
+            not username
+            or not email
+            or not password
+        ):
 
             flash(
                 "Please fill in all fields."
@@ -190,6 +244,10 @@ def register():
             return render_template(
                 "register.html"
             )
+
+        # ------------------------------
+        # Password confirmation
+        # ------------------------------
 
         if password != confirm_password:
 
@@ -200,6 +258,10 @@ def register():
             return render_template(
                 "register.html"
             )
+
+        # ------------------------------
+        # Existing username
+        # ------------------------------
 
         existing_username = User.query.filter_by(
             username=username
@@ -215,6 +277,10 @@ def register():
                 "register.html"
             )
 
+        # ------------------------------
+        # Existing email
+        # ------------------------------
+
         existing_email = User.query.filter_by(
             email=email
         ).first()
@@ -229,9 +295,17 @@ def register():
                 "register.html"
             )
 
+        # ------------------------------
+        # Hash password
+        # ------------------------------
+
         password_hash = generate_password_hash(
             password
         )
+
+        # ------------------------------
+        # Create user
+        # ------------------------------
 
         new_user = User(
             username=username,
@@ -239,7 +313,9 @@ def register():
             password_hash=password_hash
         )
 
-        db.session.add(new_user)
+        db.session.add(
+            new_user
+        )
 
         db.session.commit()
 
@@ -269,6 +345,10 @@ def login():
 
     if request.method == "POST":
 
+        # ------------------------------
+        # Get identifier
+        # ------------------------------
+
         identifier = request.form.get(
             "email",
             ""
@@ -279,11 +359,17 @@ def login():
             ""
         )
 
-        email_identifier = identifier.lower()
+        # ------------------------------
+        # Try email
+        # ------------------------------
 
         user = User.query.filter_by(
-            email=email_identifier
+            email=identifier.lower()
         ).first()
+
+        # ------------------------------
+        # Try username
+        # ------------------------------
 
         if not user:
 
@@ -291,12 +377,18 @@ def login():
                 username=identifier
             ).first()
 
+        # ------------------------------
+        # Verify password
+        # ------------------------------
+
         if user and check_password_hash(
             user.password_hash,
             password
         ):
 
-            login_user(user)
+            login_user(
+                user
+            )
 
             log_activity(
                 "User logged in",
@@ -320,7 +412,9 @@ def login():
 # DASHBOARD
 # ==========================================
 
-@app.route("/dashboard")
+@app.route(
+    "/dashboard"
+)
 @login_required
 def dashboard():
 
@@ -331,7 +425,7 @@ def dashboard():
 
 
 # ==========================================
-# UPLOAD
+# UPLOAD FILE
 # ==========================================
 
 @app.route(
@@ -343,7 +437,13 @@ def upload():
 
     if request.method == "POST":
 
-        file = request.files.get("file")
+        # ------------------------------
+        # Get uploaded file
+        # ------------------------------
+
+        file = request.files.get(
+            "file"
+        )
 
         if not file or file.filename == "":
 
@@ -355,19 +455,39 @@ def upload():
                 "upload.html"
             )
 
+        # ------------------------------
+        # Secure filename
+        # ------------------------------
+
         original_filename = secure_filename(
             file.filename
         )
 
+        # ------------------------------
+        # Read original file
+        # ------------------------------
+
         file_data = file.read()
+
+        # ------------------------------
+        # SHA-256
+        # ------------------------------
 
         file_hash = hashlib.sha256(
             file_data
         ).hexdigest()
 
+        # ------------------------------
+        # Encrypt
+        # ------------------------------
+
         encrypted_data = fernet.encrypt(
             file_data
         )
+
+        # ------------------------------
+        # Encrypted filename
+        # ------------------------------
 
         encrypted_filename = (
             str(current_user.id)
@@ -381,6 +501,10 @@ def upload():
             encrypted_filename
         )
 
+        # ------------------------------
+        # Save encrypted file
+        # ------------------------------
+
         with open(
             encrypted_path,
             "wb"
@@ -389,6 +513,10 @@ def upload():
             encrypted_file.write(
                 encrypted_data
             )
+
+        # ------------------------------
+        # Save metadata
+        # ------------------------------
 
         secure_file = SecureFile(
             original_filename=original_filename,
@@ -402,6 +530,10 @@ def upload():
         )
 
         db.session.commit()
+
+        # ------------------------------
+        # Activity
+        # ------------------------------
 
         log_activity(
             "Uploaded file: "
@@ -426,7 +558,9 @@ def upload():
 # MY FILES
 # ==========================================
 
-@app.route("/my-files")
+@app.route(
+    "/my-files"
+)
 @login_required
 def my_files():
 
@@ -450,7 +584,13 @@ def my_files():
     "/download/<int:file_id>"
 )
 @login_required
-def download_file(file_id):
+def download_file(
+    file_id
+):
+
+    # ------------------------------
+    # Find user's file
+    # ------------------------------
 
     secure_file = SecureFile.query.filter_by(
         id=file_id,
@@ -466,6 +606,10 @@ def download_file(file_id):
         return redirect(
             url_for("my_files")
         )
+
+    # ------------------------------
+    # File path
+    # ------------------------------
 
     encrypted_path = os.path.join(
         STORAGE_FOLDER,
@@ -484,6 +628,10 @@ def download_file(file_id):
             url_for("my_files")
         )
 
+    # ------------------------------
+    # Decrypt
+    # ------------------------------
+
     try:
 
         with open(
@@ -491,7 +639,9 @@ def download_file(file_id):
             "rb"
         ) as encrypted_file:
 
-            encrypted_data = encrypted_file.read()
+            encrypted_data = (
+                encrypted_file.read()
+            )
 
         decrypted_data = fernet.decrypt(
             encrypted_data
@@ -508,6 +658,10 @@ def download_file(file_id):
             url_for("my_files")
         )
 
+    # ------------------------------
+    # SHA-256 verification
+    # ------------------------------
+
     current_hash = hashlib.sha256(
         decrypted_data
     ).hexdigest()
@@ -523,11 +677,19 @@ def download_file(file_id):
             url_for("my_files")
         )
 
+    # ------------------------------
+    # Activity log
+    # ------------------------------
+
     log_activity(
         "Downloaded file: "
         + secure_file.original_filename,
         current_user.id
     )
+
+    # ------------------------------
+    # Download decrypted file
+    # ------------------------------
 
     return send_file(
         io.BytesIO(
@@ -542,7 +704,9 @@ def download_file(file_id):
 # ACTIVITY LOGS
 # ==========================================
 
-@app.route("/activity-logs")
+@app.route(
+    "/activity-logs"
+)
 @login_required
 def activity_logs():
 
@@ -552,6 +716,7 @@ def activity_logs():
         ActivityLog.timestamp.desc()
     ).all()
 
+    # India Standard Time
     ist = timezone(
         timedelta(
             hours=5,
@@ -563,9 +728,13 @@ def activity_logs():
 
         if log.timestamp:
 
-            log.timestamp = log.timestamp.replace(
-                tzinfo=timezone.utc
-            ).astimezone(ist)
+            log.timestamp = (
+                log.timestamp
+                .replace(
+                    tzinfo=timezone.utc
+                )
+                .astimezone(ist)
+            )
 
     return render_template(
         "activity_logs.html",
@@ -577,7 +746,9 @@ def activity_logs():
 # LOGOUT
 # ==========================================
 
-@app.route("/logout")
+@app.route(
+    "/logout"
+)
 @login_required
 def logout():
 
@@ -596,7 +767,7 @@ def logout():
 
 
 # ==========================================
-# DATABASE INITIALIZATION
+# CREATE DATABASE TABLES
 # ==========================================
 
 with app.app_context():
